@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="uz" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISFT Instituti - Interaktiv Portali</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Three.js Library & OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        body {
+            background: #0a0f1d;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(0, 242, 254, 0.12) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(79, 172, 254, 0.1) 0px, transparent 50%),
+                radial-gradient(at 50% 100%, rgba(255, 183, 3, 0.08) 0px, transparent 50%);
+            color: #f1f5f9;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        /* Ambient Glowing Background Blobs */
+        .cyber-blob-1 {
+            position: fixed;
+            width: 450px;
+            height: 450px;
+            background: radial-gradient(circle, rgba(0, 242, 254, 0.2) 0%, rgba(0, 0, 0, 0) 70%);
+            top: -100px;
+            left: -100px;
+            z-index: 0;
+            pointer-events: none;
+            filter: blur(50px);
+        }
+        .cyber-blob-2 {
+            position: fixed;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(255, 183, 3, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
+            bottom: -80px;
+            right: -80px;
+            z-index: 0;
+            pointer-events: none;
+            filter: blur(60px);
+        }
+
+        /* Glassmorphism Main Card */
+        .glass-card {
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        /* Neon Border Hover Button Cards */
+        .btn-card {
+            background: rgba(30, 41, 59, 0.7);
+            color: #ffffff;
+            padding: 18px 24px;
+            border-radius: 16px;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            cursor: pointer;
+            width: 100%;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 242, 254, 0.15), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn-card:hover::before {
+            left: 100%;
+        }
+
+        .btn-card:hover {
+            transform: translateY(-4px) scale(1.01);
+            background: rgba(30, 41, 59, 0.95);
+            border-color: rgba(0, 242, 254, 0.5);
+            box-shadow: 0 10px 25px -5px rgba(0, 242, 254, 0.25),
+                        0 0 15px rgba(0, 242, 254, 0.15);
+        }
+
+        /* Special 3D Button Style */
+        .btn-3d {
+            background: linear-gradient(135deg, rgba(255, 183, 3, 0.15), rgba(247, 151, 30, 0.25));
+            border: 1px solid rgba(255, 183, 3, 0.4);
+        }
+
+        .btn-3d:hover {
+            border-color: rgba(255, 183, 3, 0.8);
+            box-shadow: 0 10px 25px -5px rgba(255, 183, 3, 0.35),
+                        0 0 15px rgba(255, 183, 3, 0.2);
+        }
+
+        /* Modal Overlays with Glassmorphism */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(6, 11, 25, 0.85);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            padding: 16px;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-window {
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(0, 242, 254, 0.2);
+            border-radius: 24px;
+            width: 100%;
+            max-width: 850px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8),
+                        0 0 30px rgba(0, 242, 254, 0.1);
+            overflow: hidden;
+            transform: scale(0.95) translateY(10px);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .modal-overlay.active .modal-window {
+            transform: scale(1) translateY(0);
+        }
+
+        .modal-header {
+            padding: 20px 28px;
+            background: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-body {
+            padding: 28px;
+            overflow-y: auto;
+            flex-grow: 1;
+            color: #cbd5e1;
+        }
+
+        .modal-footer {
+            padding: 18px 28px;
+            background: rgba(0, 0, 0, 0.3);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        /* Custom Scrollbar */
+        .modal-body::-webkit-scrollbar, .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .modal-body::-webkit-scrollbar-track, .custom-scroll::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+        }
+        .modal-body::-webkit-scrollbar-thumb, .custom-scroll::-webkit-scrollbar-thumb {
+            background: rgba(0, 242, 254, 0.3);
+            border-radius: 4px;
+        }
+
+        /* 3D Canvas Canvas Wrapper */
+        #threejs-canvas-wrapper {
+            width: 100%;
+            height: 440px;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #050b14;
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Student Table Styling */
+        .student-table th {
+            background: rgba(0, 242, 254, 0.1);
+            color: #00f2fe;
+            padding: 14px 16px;
+            font-weight: 700;
+        }
+        .student-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .student-table tr:hover {
+            background: rgba(0, 242, 254, 0.05);
+            cursor: pointer;
+        }
+    </style>
+
+    <script>
+        // Global State & URLs
+        var studentList = [];
+        var googleScriptUrl = "https://script.google.com/macros/s/AKfycbxSOgSBdhCyYK6CfGOC4A8iTqW-koO7Qqntz5eyqp8Ef19xFUd7IBuQmDQhdr6DsRzP/exec";
+        var scene, camera, renderer, controls, is3DInitialized = false;
+
+        // Presentation Datasets
+        var pres1Data = [
+            { icon: "fa-university", title: "1. ISFT Instituti Haqida", desc: "ISFT (International School of Finance and Technology) - O'zbekistondagi zamonaviy va nufuzli nodavlat oliy ta'lim muassasasidir. Talabalarga jahon standartlariga mos bilim beradi." },
+            { icon: "fa-bullseye", title: "2. Bizning Missiyamiz", desc: "Xalqaro darajadagi raqobatbardosh kadrlar tayyorlash, innovatsion texnologiyalarni ta'limga tatbiq etish va amaliy ko'nikmalarni shakllantirish." },
+            { icon: "fa-globe", title: "3. Xalqaro Hamkorlik", desc: "ACCA (Association of Chartered Certified Accountants) bilan rasmiy integratsiya hamda Yevropa va Osiyo yetakchi universitetlari bilan almashinuv dasturlari." },
+            { icon: "fa-laptop-code", title: "4. Infratuzilma & IT Zallar", desc: "Smart-auditoriyalar, zamonaviy kompyuter laboratoriyalari, boy elektron va bosma kutubxona hamda kovorking hududlari." },
+            { icon: "fa-trophy", title: "5. Bitiruvchilar Kelajagi", desc: "Bitiruvchilarimiz 95% holatda birinchi 6 oy ichida mahalliy va xalqaro banklar, IT kompaniyalar va davlat tashkilotlarida ish bilan ta'minlanadi." }
+        ];
+
+        var pres2Data = [
+            { icon: "fa-calculator", title: "1. Xalqaro Moliya & Buxgalteriya", desc: "ACCA standartlariga mos ravishda xalqaro moliya, audit va soliqqa tortish bo'yicha yuqori malakali kadrlarni tayyorlash yo'nalishi." },
+            { icon: "fa-code", title: "2. Axborot Texnologiyalari (IT)", desc: "Software Engineering, Web va Mobile ilovalarni ishlab chiqish, Sun'iy intellekt hamda Kiberxavfsizlik bo'yicha amaliy dastur." },
+            { icon: "fa-briefcase", title: "3. Biznes Boshqaruvi va Menejment", desc: "Strategik menejment, loyihalarni boshqarish (Agile/Scrum), startaplar yaratish hamda marketing ko'nikmalari." },
+            { icon: "fa-language", title: "4. Xorijiy Tillar va Tarjimashunoslik", desc: "Ingliz, nemis va xitoy tillaridan professional tarjimonlar hamda xalqaro muloqot bo'yicha mutaxassislar tayyorlash." },
+            { icon: "fa-chalkboard-user", title: "5. Pedagogika va Boshlang'ich Ta'lim", desc: "Zamonaviy pedagogik texnologiyalar, interaktiv o'qitish metodlari hamda psixologik yondashuvlar integratsiyasi." }
+        ];
+
+        var p1Idx = 0;
+        var p2Idx = 0;
+        var activeSurveyTab = 1;
+
+        // Exposed Global Helper Functions
+        window.openModal = function(modalId) {
+            var el = document.getElementById(modalId);
+            if (el) el.classList.add('active');
+            if (modalId === 'modal-3d') setTimeout(initThreeJS, 150);
+            if (modalId === 'modal-sheet') fetchStudentDataFromSheet();
+        };
+
+        window.closeModal = function(modalId) {
+            var el = document.getElementById(modalId);
+            if (el) el.classList.remove('active');
+        };
+
+        window.openIframeModal = function(url, title) {
+            var modal = document.getElementById('modal-iframe');
+            var iframe = document.getElementById('app-iframe');
+            var titleEl = document.getElementById('iframe-title');
+            if (modal && iframe && titleEl) {
+                titleEl.innerText = title;
+                iframe.src = url;
+                modal.classList.add('active');
+            }
+        };
+
+        window.closeIframeModal = function() {
+            var modal = document.getElementById('modal-iframe');
+            var iframe = document.getElementById('app-iframe');
+            if (modal) modal.classList.remove('active');
+            if (iframe) iframe.src = 'about:blank';
+        };
+
+        // Survey Switcher Logic (5 Sub-Surveys)
+        window.switchSurveyTab = function(tabNum) {
+            activeSurveyTab = tabNum;
+            for (var i = 1; i <= 5; i++) {
+                var content = document.getElementById('survey-tab-content-' + i);
+                var btn = document.getElementById('survey-tab-btn-' + i);
+                if (content && btn) {
+                    if (i === tabNum) {
+                        content.classList.remove('hidden');
+                        btn.className = "px-3 py-2 text-xs font-bold rounded-xl transition bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20";
+                    } else {
+                        content.classList.add('hidden');
+                        btn.className = "px-3 py-2 text-xs font-bold rounded-xl transition bg-slate-800 text-slate-300 hover:bg-slate-700";
+                    }
+                }
+            }
+        };
+
+        window.handleSurveySubmit = function(e) {
+            e.preventDefault();
+            var form = document.getElementById('surveyForm');
+            var formData = new FormData(form);
+            
+            var summary = `
+                <div class="space-y-2">
+                    <p class="text-xs uppercase font-bold text-amber-400">Yuborilgan So'rovnoma Xulosasi:</p>
+                    <p><strong>1. Ta'lim Sifati:</strong> <span class="text-cyan-300">${formData.get('q1') || 'Belgilanmagan'}</span></p>
+                    <p><strong>2. 3D Infratuzilma:</strong> <span class="text-cyan-300">${formData.get('q2') || 'Belgilanmagan'}</span></p>
+                    <p><strong>3. Tanlangan Yo'nalish:</strong> <span class="text-cyan-300">${formData.get('q3') || 'Belgilanmagan'}</span></p>
+                    <p><strong>4. Professor-O'qituvchilar:</strong> <span class="text-cyan-300">${formData.get('q4') || 'Belgilanmagan'}</span></p>
+                    <p><strong>5. Fikr / Taklif:</strong> <span class="text-slate-300">${document.getElementById('q5Text').value || 'Kiritilmadi'}</span></p>
+                </div>
+            `;
+
+            document.getElementById('surveySummaryContent').innerHTML = summary;
+            closeModal('modal-survey');
+            openModal('modal-survey-result');
+            form.reset();
+        };
+
+        // Slide Viewer Controls
+        window.renderSlide = function(presNum) {
+            var data = presNum === 1 ? pres1Data : pres2Data;
+            var idx = presNum === 1 ? p1Idx : p2Idx;
+            var container = document.getElementById(`p${presNum}-slide-box`);
+            var counter = document.getElementById(`p${presNum}-counter`);
+
+            if (!container || !counter) return;
+
+            var current = data[idx];
+            container.innerHTML = `
+                <div class="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-400/30 flex items-center justify-center text-3xl text-cyan-400 mb-4 shadow-lg shadow-cyan-500/10">
+                    <i class="fa-solid ${current.icon}"></i>
+                </div>
+                <h4 class="text-2xl font-bold text-white mb-3">${current.title}</h4>
+                <p class="text-sm text-slate-300 max-w-lg leading-relaxed">${current.desc}</p>
+            `;
+            counter.innerText = `Slayd ${idx + 1} / ${data.length}`;
+        };
+
+        window.changeSlide = function(presNum, direction) {
+            if (presNum === 1) {
+                p1Idx = (p1Idx + direction + pres1Data.length) % pres1Data.length;
+            } else {
+                p2Idx = (p2Idx + direction + pres2Data.length) % pres2Data.length;
+            }
+            renderSlide(presNum);
+        };
+
+        // Google Sheets Integration & Fallback Logic
+        function getProp(obj, keys, defaultVal) {
+            if (!obj) return defaultVal || '-';
+            for (var i = 0; i < keys.length; i++) {
+                var k = keys[i];
+                if (obj[k] !== undefined && obj[k] !== null && obj[k] !== '') {
+                    return obj[k];
+                }
+            }
+            return defaultVal || '-';
+        }
+
+        window.fetchStudentDataFromSheet = async function() {
+            var tbody = document.getElementById('studentTableBody');
+            if (tbody) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-cyan-400 font-semibold"><i class="fa-solid fa-circle-notch fa-spin text-2xl mr-2"></i> Google Sheets API'dan ma'lumotlar yuklanmoqda...</td></tr>`;
+            }
+
+            try {
+                var response = await fetch(googleScriptUrl);
+                var data = await response.json();
+                
+                var rawList = [];
+                if (Array.isArray(data)) rawList = data;
+                else if (data && Array.isArray(data.data)) rawList = data.data;
+                else if (data && typeof data === 'object') rawList = Object.values(data);
+
+                if (rawList.length > 0) {
+                    studentList = rawList.map(function(st, i) {
+                        return {
+                            id: getProp(st, ['id', 'ID', 'code'], `ISFT-${100 + i}`),
+                            name: getProp(st, ['name', 'Ism', 'Name', 'F.I.O.', 'fio'], 'Noma\'lum'),
+                            faculty: getProp(st, ['faculty', 'Yonalish', 'Faculty', 'yonalish'], 'Mavjud emas'),
+                            course: getProp(st, ['course', 'Kurs', 'Course'], '1-kurs'),
+                            gpa: getProp(st, ['gpa', 'GPA', 'baho'], '4.5'),
+                            phone: getProp(st, ['phone', 'Telefon', 'tel'], '+998 90 123 45 67'),
+                            status: getProp(st, ['status', 'Holat', 'Status'], 'Faol')
+                        };
+                    });
+                } else {
+                    throw new Error("Bo'sh ma'lumot");
+                }
+                populateStudentTable(studentList);
+            } catch (error) {
+                console.warn("Fallback offline list being loaded:", error);
+                studentList = [
+                    { id: "ISFT-101", name: "Jasur Rahimov", faculty: "Axborot Texnologiyalari", course: "3-kurs", gpa: "4.8", phone: "+998 90 123 45 67", status: "A'lochi" },
+                    { id: "ISFT-102", name: "Madina Alimova", faculty: "Xalqaro Moliya & ACCA", course: "2-kurs", gpa: "4.9", phone: "+998 91 234 56 78", status: "A'lochi" },
+                    { id: "ISFT-103", name: "Sardor Karimov", faculty: "Biznes Boshqaruvi", course: "4-kurs", gpa: "4.6", phone: "+998 93 345 67 89", status: "Faol" },
+                    { id: "ISFT-104", name: "Nigora Azimova", faculty: "Xorijiy Tillar", course: "1-kurs", gpa: "4.7", phone: "+998 94 456 78 90", status: "Faol" },
+                    { id: "ISFT-105", name: "Bekzod Toirov", faculty: "Axborot Texnologiyalari", course: "2-kurs", gpa: "4.5", phone: "+998 97 567 89 01", status: "Faol" },
+                    { id: "ISFT-106", name: "Shahnoza Yusupova", faculty: "Pedagogika va Ta'lim", course: "3-kurs", gpa: "4.95", phone: "+998 99 678 90 12", status: "A'lochi" }
+                ];
+                populateStudentTable(studentList);
+            }
+        };
+
+        window.populateStudentTable = function(list) {
+            var tbody = document.getElementById('studentTableBody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            if (list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400">Qidiruv bo'yicha ma'lumot topilmadi.</td></tr>`;
+                return;
+            }
+
+            list.forEach(function(st, idx) {
+                var tr = document.createElement('tr');
+                tr.onclick = function() { openStudentDetail(st); };
+                tr.innerHTML = `
+                    <td class="text-slate-400 font-mono text-xs">${st.id}</td>
+                    <td class="font-bold text-white">${st.name}</td>
+                    <td>${st.faculty}</td>
+                    <td>${st.course}</td>
+                    <td class="text-amber-400 font-bold">${st.gpa}</td>
+                    <td><span class="bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-2.5 py-0.5 rounded-full text-xs font-semibold">${st.status}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        };
+
+        window.searchStudent = function() {
+            var query = document.getElementById('studentSearchInput').value.toLowerCase();
+            var filtered = studentList.filter(function(st) {
+                return (
+                    st.name.toLowerCase().includes(query) || 
+                    st.faculty.toLowerCase().includes(query) ||
+                    st.id.toLowerCase().includes(query)
+                );
+            });
+            populateStudentTable(filtered);
+        };
+
+        window.openStudentDetail = function(student) {
+            document.getElementById('sdName').innerText = student.name;
+            document.getElementById('sdFaculty').innerText = student.faculty;
+            document.getElementById('sdID').innerText = student.id;
+            document.getElementById('sdCourse').innerText = student.course;
+            document.getElementById('sdGPA').innerText = student.gpa;
+            document.getElementById('sdPhone').innerText = student.phone;
+            document.getElementById('sdStatus').innerText = student.status;
+
+            openModal('student-detail-modal');
+        };
+
+        // Three.js 3D Building Scene
+        window.initThreeJS = function() {
+            if (is3DInitialized) return;
+            is3DInitialized = true;
+
+            var wrapper = document.getElementById('threejs-canvas-wrapper');
+            if (!wrapper) return;
+
+            var width = wrapper.clientWidth;
+            var height = wrapper.clientHeight;
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0f1d);
+
+            camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+            camera.position.set(24, 20, 28);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            wrapper.appendChild(renderer.domElement);
+
+            if (typeof THREE.OrbitControls !== 'undefined') {
+                controls = new THREE.OrbitControls(camera, renderer.domElement);
+                controls.enableDamping = true;
+                controls.dampingFactor = 0.05;
+            }
+
+            var ambient = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambient);
+
+            var cyanLight = new THREE.DirectionalLight(0x00f2fe, 0.9);
+            cyanLight.position.set(20, 30, 15);
+            scene.add(cyanLight);
+
+            var amberLight = new THREE.DirectionalLight(0xffb703, 0.5);
+            amberLight.position.set(-20, 15, -15);
+            scene.add(amberLight);
+
+            // Base Ground Grid
+            var groundGeo = new THREE.PlaneGeometry(70, 70);
+            var groundMat = new THREE.MeshLambertMaterial({ color: 0x0f172a });
+            var ground = new THREE.Mesh(groundGeo, groundMat);
+            ground.rotation.x = -Math.PI / 2;
+            scene.add(ground);
+
+            var grid = new THREE.GridHelper(70, 20, 0x00f2fe, 0x1e293b);
+            grid.position.y = 0.01;
+            scene.add(grid);
+
+            // Main Campus Group
+            var buildingGroup = new THREE.Group();
+
+            // Main Building Tower
+            var mainGeo = new THREE.BoxGeometry(14, 14, 10);
+            var mainMat = new THREE.MeshPhongMaterial({ color: 0x1e293b, shininess: 90 });
+            var mainBuilding = new THREE.Mesh(mainGeo, mainMat);
+            mainBuilding.position.y = 7;
+            buildingGroup.add(mainBuilding);
+
+            // Glass Front Facade
+            var glassGeo = new THREE.BoxGeometry(12.5, 12, 0.2);
+            var glassMat = new THREE.MeshPhongMaterial({ color: 0x00f2fe, opacity: 0.7, transparent: true, shininess: 100 });
+            var glass = new THREE.Mesh(glassGeo, glassMat);
+            glass.position.set(0, 7, 5.1);
+            buildingGroup.add(glass);
+
+            // Top ISFT Brand Signboard
+            var signGeo = new THREE.BoxGeometry(9, 2.2, 0.6);
+            var signMat = new THREE.MeshPhongMaterial({ color: 0xffb703, emissive: 0x332200 });
+            var sign = new THREE.Mesh(signGeo, signMat);
+            sign.position.set(0, 15, 0);
+            buildingGroup.add(sign);
+
+            // Left & Right Wings
+            var wingGeo = new THREE.BoxGeometry(7, 9, 8);
+            var wingMat = new THREE.MeshPhongMaterial({ color: 0x0f172a });
+            
+            var leftWing = new THREE.Mesh(wingGeo, wingMat);
+            leftWing.position.set(-10.5, 4.5, 0);
+            buildingGroup.add(leftWing);
+
+            var rightWing = new THREE.Mesh(wingGeo, wingMat);
+            rightWing.position.set(10.5, 4.5, 0);
+            buildingGroup.add(rightWing);
+
+            // Trees and Landscape
+            var trunkGeo = new THREE.CylinderGeometry(0.3, 0.4, 2);
+            var trunkMat = new THREE.MeshBasicMaterial({ color: 0x475569 });
+            var leavesGeo = new THREE.ConeGeometry(1.6, 4, 6);
+            var leavesMat = new THREE.MeshBasicMaterial({ color: 0x10b981 });
+
+            var treeCoords = [[-16, 10], [16, 10], [-16, -10], [16, -10], [-8, 14], [8, 14]];
+            treeCoords.forEach(function(pos) {
+                var trunk = new THREE.Mesh(trunkGeo, trunkMat);
+                trunk.position.set(pos[0], 1, pos[1]);
+                var leaves = new THREE.Mesh(leavesGeo, leavesMat);
+                leaves.position.set(pos[0], 4, pos[1]);
+                scene.add(trunk);
+                scene.add(leaves);
+            });
+
+            scene.add(buildingGroup);
+
+            // Animation Loop
+            function animate() {
+                requestAnimationFrame(animate);
+                buildingGroup.rotation.y += 0.0025;
+                if (controls) controls.update();
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            window.addEventListener('resize', function() {
+                if (!wrapper) return;
+                var w = wrapper.clientWidth;
+                var h = wrapper.clientHeight;
+                camera.aspect = w / h;
+                camera.updateProjectionMatrix();
+                renderer.setSize(w, h);
+            });
+        };
+    </script>
+</head>
+<body>
+
+    <!-- Ambient Glowing Cyber Blobs -->
+    <div class="cyber-blob-1"></div>
+    <div class="cyber-blob-2"></div>
+
+    <!-- MAIN INTERACTIVE PORTAL CARD -->
+    <div class="glass-card p-8 md:p-12 max-w-2xl w-full text-center relative z-10 my-8">
+        
+        <!-- Brand Header -->
+        <div class="flex justify-center mb-4">
+            <div class="w-20 h-20 rounded-3xl bg-gradient-to-tr from-cyan-500/20 to-amber-500/20 border border-cyan-400/30 flex items-center justify-center text-cyan-400 text-4xl shadow-xl shadow-cyan-500/10 backdrop-blur-md">
+                <i class="fa-solid fa-graduation-cap"></i>
+            </div>
+        </div>
+        
+        <h1 class="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-200 to-amber-400 mb-2 tracking-tight">
+            ISFT Instituti
+        </h1>
+        <p class="text-slate-400 text-sm md:text-base font-medium mb-10 max-w-md mx-auto leading-relaxed">
+            Interaktiv Xizmatlar va Resurslar Integratsiyalangan Rasmiy Portali
+        </p>
+        
+        <!-- Action Buttons Grid -->
+        <div class="flex flex-col gap-4">
+            
+            <!-- 1. So'rovnomalar (5 ta) -->
+            <button onclick="openModal('modal-survey')" class="btn-card">
+                <span class="flex items-center gap-4">
+                    <span class="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 text-lg">
+                        <i class="fa-solid fa-list-check"></i>
+                    </span>
+                    <span class="text-left">
+                        <span class="block font-bold text-white text-base">5 Ta Institut So'rovnomasi</span>
+                        <span class="block text-xs text-slate-400">Ta'lim, infratuzilma va fikrlar</span>
+                    </span>
+                </span>
+                <i class="fa-solid fa-chevron-right text-xs opacity-60"></i>
+            </button>
+            
+            <!-- 2. 1-Taqdimot: ISFT Haqida -->
+            <button onclick="openModal('modal-pres1')" class="btn-card">
+                <span class="flex items-center gap-4">
+                    <span class="w-10 h-10 rounded-xl bg-sky-500/10 flex items-center justify-center text-sky-400 text-lg">
+                        <i class="fa-solid fa-chart-pie"></i>
+                    </span>
+                    <span class="text-left">
+                        <span class="block font-bold text-white text-base">1-Taqdimot: ISFT Haqida Ma'lumot</span>
+                        <span class="block text-xs text-slate-400">Missiya, hamkorlik va yutuqlar</span>
+                    </span>
+                </span>
+                <i class="fa-solid fa-chevron-right text-xs opacity-60"></i>
+            </button>
+            
+            <!-- 3. 2-Taqdimot: Ta'lim Yo'nalishlari -->
+            <button onclick="openModal('modal-pres2')" class="btn-card">
+                <span class="flex items-center gap-4">
+                    <span class="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 text-lg">
+                        <i class="fa-solid fa-book-bookmark"></i>
+                    </span>
+                    <span class="text-left">
+                        <span class="block font-bold text-white text-base">2-Taqdimot: Ta'lim Yo'nalishlari</span>
+                        <span class="block text-xs text-slate-400">Moliya, IT, Menejment va Tillar</span>
+                    </span>
+                </span>
+                <i class="fa-solid fa-chevron-right text-xs opacity-60"></i>
+            </button>
+            
+            <!-- 4. 3D Bino Modeli -->
+            <button onclick="openModal('modal-3d')" class="btn-card btn-3d">
+                <span class="flex items-center gap-4">
+                    <span class="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-400 text-lg">
+                        <i class="fa-solid fa-cube"></i>
+                    </span>
+                    <span class="text-left">
+                        <span class="block font-bold text-amber-300 text-base">ISFT 3D Bino Modeli</span>
+                        <span class="block text-xs text-amber-200/70">Three.js Interaktiv 360° vizualizatsiya</span>
+                    </span>
+                </span>
+                <i class="fa-solid fa-up-right-and-down-left-from-center text-xs text-amber-400 opacity-80"></i>
+            </button>
+            
+            <!-- 5. Talabalar Jadvali va Ro'yxati -->
+            <button onclick="openModal('modal-sheet')" class="btn-card">
+                <span class="flex items-center gap-4">
+                    <span class="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 text-lg">
+                        <i class="fa-solid fa-users-viewfinder"></i>
+                    </span>
+                    <span class="text-left">
+                        <span class="block font-bold text-white text-base">Talabalar Ro'yxati & Jadval</span>
+                        <span class="block text-xs text-slate-400">Google Sheets real-vaqt integratsiyasi</span>
+                    </span>
+                </span>
+                <i class="fa-solid fa-chevron-right text-xs opacity-60"></i>
+            </button>
+        </div>
+
+        <footer class="mt-10 text-xs text-slate-500 flex justify-between items-center border-t border-slate-800 pt-6">
+            <span>&copy; 2026 ISFT Instituti. Barcha huquqlar himoyalangan.</span>
+            <span class="font-mono text-cyan-400/80">v2.6 Cyber-Glass</span>
+        </footer>
+    </div>
+
+    <!-- ================= MODAL 1: 5 TA SO'ROVNOMA (TABS) ================= -->
+    <div id="modal-survey" class="modal-overlay">
+        <div class="modal-window max-w-3xl">
+            <div class="modal-header">
+                <h3 class="text-xl font-bold text-cyan-400 flex items-center gap-2">
+                    <i class="fa-solid fa-pen-to-square"></i> ISFT 5 Ta Interaktiv So'rovnomasi
+                </h3>
+                <button onclick="closeModal('modal-survey')" class="text-slate-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            
+            <!-- Survey Sub-Tabs Navigation -->
+            <div class="px-7 pt-4 border-b border-slate-800 flex flex-wrap gap-2">
+                <button id="survey-tab-btn-1" onclick="switchSurveyTab(1)" class="px-3 py-2 text-xs font-bold rounded-xl transition bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20">1. Ta'lim Sifati</button>
+                <button id="survey-tab-btn-2" onclick="switchSurveyTab(2)" class="px-3 py-2 text-xs font-bold rounded-xl transition bg-slate-800 text-slate-300 hover:bg-slate-700">2. 3D Kampus</button>
+                <button id="survey-tab-btn-3" onclick="switchSurveyTab(3)" class="px-3 py-2 text-xs font-bold rounded-xl transition bg-slate-800 text-slate-300 hover:bg-slate-700">3. Yo'nalishlar</button>
+                <button id="survey-tab-btn-4" onclick="switchSurveyTab(4)" class="px-3 py-2 text-xs font-bold rounded-xl transition bg-slate-800 text-slate-300 hover:bg-slate-700">4. O'qituvchilar</button>
+                <button id="survey-tab-btn-5" onclick="switchSurveyTab(5)" class="px-3 py-2 text-xs font-bold rounded-xl transition bg-slate-800 text-slate-300 hover:bg-slate-700">5. Takliflar</button>
+            </div>
+
+            <div class="modal-body">
+                <form id="surveyForm" onsubmit="handleSurveySubmit(event)" class="space-y-4">
+                    
+                    <!-- Tab 1: Ta'lim Sifati -->
+                    <div id="survey-tab-content-1" class="space-y-4">
+                        <div class="bg-slate-900/60 border border-slate-800 p-5 rounded-2xl">
+                            <p class="font-semibold text-cyan-300 mb-3">1. ISFT Institutida ta'lim sifati va dars o'tish metodikasini qanday baholaysiz?</p>
+                            <div class="space-y-2 text-sm text-slate-300">
+                                <label class="flex items-center gap-3 cursor-pointer p-2 rounded-xl hover:bg-slate-800/50"><input type="radio" name="q1" value="A'lo (5/5)" required class="accent-cyan-400"> <span>A'lo darajada (5/5)</span></label>
+                                <label class="flex items-center gap-3 cursor-pointer p-2 rounded-xl hover:bg-slate-800/50"><input type="radio" name="q1" value="Yaxshi (4/5)" class="accent-cyan-400"> <span>Yaxshi (4/5)</span></label>
+                                <label class="flex items-center gap-3 cursor-pointer p-2 rounded-xl hover:bg-slate-800/50"><input type="radio" name="q1" value="Qoniqarli (3/5)" class="accent-cyan-400"> <span>Qoniqarli (3/5)</span></label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 2: 3D Infratuzilma -->
+                    <div id="survey-tab-content-2" class="hidden space-y-4">
+                        <div class="bg-slate-900/60 border border-slate-800 p-5 rounded-2xl">
+                            <p class="font-semibold text-cyan-300 mb-3">2. Institutning 3D zamonaviy kampusi va texnik sharoitlari sizga ma'qulmi?</p>
+                            <div class="space-y-2 text-sm text-slate-300">
+                                <label class="flex items-center gap-3 cursor-pointer p-2 rounded-xl hover:bg-slate-800/50"><input type="radio" name="q2" value="Juda ma'qul va zamonaviy" required class="accent-cyan-400"> <span>Ha, juda zamonaviy va shinam</span></label>
+                                <label class="flex items-center gap-3 cursor-pointer p-2 rounded-xl hover:bg-slate-800/50"><input type="radio" name="q2" value="Qisman mos keladi" class="accent-cyan-400"> <span>Qisman mos keladi</span></label>
+                                <label class="flex items-center gap-3 cursor-pointer p-2 rounded-xl hover:bg-slate-800/50"><input type="radio" name="q2" value="Rivojlantirish kerak" class="accent-cyan-400"> <span>Yana takomillashtirish lozim</span></label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 3: Yo'nalishlar -->
+                    <div id="survey-tab-content-3" class="hidden space-y-4">
+                        <div class="bg-slate-900/60 border border-slate-800 p-5 rounded-2xl">
+                            <p class="font-semibold text-cyan-300 mb-3">3. Qaysi mutaxassislik yo'nalishiga ko'proq qiziqasiz yoki tahsil olasiz?</p>
+                            <div class="space-y-2 text-sm text-slate-300">
+                                <label class="flex items-center gap-3 cursor-pointer p-2 rounded-xl hover:bg-slate-800/50"><input type="radio" name="q3" value="Xalqaro Moliya & ACCA" required class="accent-cyan-400"> <span>Xalqaro Moliya & ACCA</span></label>
+                                <label class="flex items-center gap-3 cursor-pointer p-2 rounded-xl hover:bg-slate-800/50"><input type="radio" name="q3" value="Axborot Texnologiyalari (IT)" class="accent-cyan-400"> <span>Axborot Texnologiyalari (IT)</span></label>
+                                <label class="flex items-center gap-3 cursor-pointer p-2 rounded-xl hover:bg-slate-800/50"><input type="radio" name="q3" value="Biznes va Boshqaruv" class="accent-cyan-400"> <span>Biznes va Boshqaruv</span></label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 4: O'qituvchilar -->
+                    <div id="survey-tab-content-4" class="hidden space-y-4">
+                        <div class="bg-slate-900/60 border border-slate-800 p-5 rounded-2xl">
+                            <p class="font-semibold text-cyan-300 mb-3">4. Professor-o'qituvchilar tarkibining tayyorgarligi va muomala madaniyatini baholang:</p>
+                            <div class="space-y-2 text-sm text-slate-300">
+                                <label class="flex items-center gap-3 cursor-pointer p-2 rounded-xl hover:bg-slate-800/50"><input type="radio" name="q4" value="Yuqori xalqaro darajada" required class="accent-cyan-400"> <span>Yuqori xalqaro darajada</span></label>
+                                <label class="flex items-center gap-3 cursor-pointer p-2 rounded-xl hover:bg-slate-800/50"><input type="radio" name="q4" value="O'rta darajada" class="accent-cyan-400"> <span>O'rta darajada</span></label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 5: Takliflar -->
+                    <div id="survey-tab-content-5" class="hidden space-y-4">
+                        <div class="bg-slate-900/60 border border-slate-800 p-5 rounded-2xl">
+                            <p class="font-semibold text-cyan-300 mb-3">5. Institut hayotini yanada yaxshilash bo'yicha taklif va mulohazalaringiz:</p>
+                            <textarea id="q5Text" rows="4" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-cyan-400" placeholder="O'z fikr va takliflaringizni erkin bayon eting..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="pt-2">
+                        <button type="submit" class="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-extrabold py-3.5 rounded-xl transition shadow-lg shadow-cyan-500/20">
+                            <i class="fa-solid fa-paper-plane mr-2"></i> Barcha Javoblarni Yuborish va Saqlash
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="modal-footer">
+                <span class="text-xs text-slate-400">Rasmiy Google Form so'rovnomasi:</span>
+                <a href="https://docs.google.com/forms/d/e/1FAIpQLSfKzwNz6ofgDcYJozKKUhkTg1D10slLco2yZsyTPy4Lojor7w/viewform" target="_blank" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i> Forms-da Ochish
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL 3: 2-TAQDIMOT ================= -->
+    <div id="modal-pres2" class="modal-overlay">
+        <div class="modal-window">
+            <div class="modal-header">
+                <h3 class="text-xl font-bold text-cyan-400 flex items-center gap-2">
+                    <i class="fa-solid fa-book-open"></i> 2-Taqdimot: Ta'lim Yo'nalishlari
+                </h3>
+                <button onclick="closeModal('modal-pres2')" class="text-slate-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            <div class="modal-body space-y-6">
+                <div id="p2-slide-box" class="bg-slate-900/80 border border-slate-800 rounded-2xl p-8 min-h-[280px] flex flex-col justify-center items-center text-center">
+                    <!-- Slide Content Injected by JS -->
+                </div>
+                <div class="flex justify-between items-center">
+                    <button onclick="changeSlide(2, -1)" class="bg-slate-800 border border-slate-700 hover:bg-cyan-500/20 px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2">
+                        <i class="fa-solid fa-chevron-left"></i> Oldingisi
+                    </button>
+                    <span id="p2-counter" class="text-xs font-mono text-cyan-400 font-bold">Slayd 1 / 5</span>
+                    <button onclick="changeSlide(2, 1)" class="bg-slate-800 border border-slate-700 hover:bg-cyan-500/20 px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2">
+                        Keyingisi <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <span class="text-xs text-slate-400">Google Slides rasmiy fayli:</span>
+                <a href="https://docs.google.com/presentation/d/14TRMTYI7tOB3i70u88NYtFEzSpeKNN0mo6x0uAE5NaE/edit?usp=sharing" target="_blank" class="bg-amber-500 hover:bg-amber-400 text-slate-950 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2">
+                    <i class="fa-solid fa-file-powerpoint"></i> Google Slides-da Ochish
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL 4: 3D BINO ================= -->
+    <div id="modal-3d" class="modal-overlay">
+        <div class="modal-window">
+            <div class="modal-header">
+                <h3 class="text-xl font-bold text-amber-400 flex items-center gap-2">
+                    <i class="fa-solid fa-cube"></i> ISFT Zamonaviy Binosi 3D Modeli
+                </h3>
+                <button onclick="closeModal('modal-3d')" class="text-slate-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            <div class="modal-body p-4">
+                <div id="threejs-canvas-wrapper">
+                    <div class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-slate-950/80 backdrop-blur-md px-4 py-2 rounded-full text-xs text-slate-300 border border-slate-700 pointer-events-none z-10 flex items-center gap-2">
+                        <i class="fa-solid fa-hand-pointer text-amber-400"></i> Sichqoncha / barmoq bilan 360° aylantiring va masshtablang
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <span class="text-xs text-slate-400">CGTrader 3D resurs havolasi:</span>
+                <a href="https://www.cgtrader.com/ai-3d-model-generator/3d-models/modern-residential-building-3d-model-knwqayhwaaz" target="_blank" class="bg-gradient-to-r from-amber-500 to-yellow-400 hover:opacity-90 text-slate-950 font-extrabold px-4 py-2 rounded-xl text-xs flex items-center gap-2">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i> CGTrader Model
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL 5: TALABALAR JADVALI (GOOGLE SHEETS) ================= -->
+    <div id="modal-sheet" class="modal-overlay">
+        <div class="modal-window">
+            <div class="modal-header">
+                <h3 class="text-xl font-bold text-cyan-400 flex items-center gap-2">
+                    <i class="fa-solid fa-users"></i> Talabalar Ro'yxati (Google Sheets API)
+                </h3>
+                <button onclick="closeModal('modal-sheet')" class="text-slate-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            <div class="modal-body space-y-4">
+                <div class="flex gap-2">
+                    <div class="relative w-full">
+                        <input type="text" id="studentSearchInput" onkeyup="searchStudent()" placeholder="Ism, familiya, ID yoki yo'nalish bo'yicha instant qidiruv..." class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-400">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-slate-500 text-sm"></i>
+                    </div>
+                    <button onclick="fetchStudentDataFromSheet()" class="bg-cyan-600 hover:bg-cyan-500 text-white px-4 rounded-xl text-sm font-semibold flex items-center gap-2 transition" title="Qayta yuklash">
+                        <i class="fa-solid fa-rotate"></i>
+                    </button>
+                </div>
+                
+                <div class="overflow-x-auto rounded-2xl border border-slate-800 min-h-[240px] relative bg-slate-950/50 custom-scroll">
+                    <table class="w-full text-left text-xs student-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Ism Familiya</th>
+                                <th>Yo'nalish</th>
+                                <th>Bosqich</th>
+                                <th>GPA</th>
+                                <th>Holat</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentTableBody" class="divide-y divide-slate-800 text-slate-300">
+                            <!-- Injected by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <span class="text-xs text-slate-400">Google Sheets hujjat havolasi:</span>
+                <a href="https://docs.google.com/spreadsheets/d/1GnLa3CWho69MP6BiiIkoohcB1-skUrvFcVB_YBmK4As/edit?usp=sharing" target="_blank" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2">
+                    <i class="fa-solid fa-file-excel"></i> Google Sheets-da Ochish
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= SUB-MODAL: TALABA BATAFSIL POPUP ================= -->
+    <div id="student-detail-modal" class="modal-overlay" style="z-index: 150;">
+        <div class="bg-slate-900 border border-cyan-400/50 rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl relative">
+            <button onclick="closeModal('student-detail-modal')" class="absolute top-4 right-4 text-slate-400 hover:text-white text-xl">&times;</button>
+            
+            <div class="w-20 h-20 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 mx-auto flex items-center justify-center text-3xl text-white shadow-lg mb-3">
+                <i class="fa-solid fa-user-graduate"></i>
+            </div>
+            
+            <h3 id="sdName" class="text-xl font-bold text-white mb-1">-</h3>
+            <p id="sdFaculty" class="text-xs font-semibold text-cyan-400 mb-4">-</p>
+            
+            <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 text-left text-xs text-slate-300 space-y-2 mb-5 font-medium">
+                <p class="flex justify-between"><span>ID Raqam:</span> <span id="sdID" class="text-white font-mono font-bold">-</span></p>
+                <p class="flex justify-between"><span>Bosqich / Kurs:</span> <span id="sdCourse" class="text-white">-</span></p>
+                <p class="flex justify-between"><span>GPA Bahosi:</span> <span id="sdGPA" class="text-amber-400 font-bold">-</span></p>
+                <p class="flex justify-between"><span>Telefon:</span> <span id="sdPhone" class="text-white">-</span></p>
+                <p class="flex justify-between"><span>Status:</span> <span id="sdStatus" class="text-emerald-400 font-bold">-</span></p>
+            </div>
+
+            <button onclick="closeModal('student-detail-modal')" class="w-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold py-2.5 rounded-xl text-xs transition">
+                Yopish
+            </button>
+        </div>
+    </div>
+
+    <!-- DOM INITIALIZATION LISTENERS -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Pre-render slides
+            renderSlide(1);
+            renderSlide(2);
+
+            // Close modal when clicking dark backdrop
+            document.querySelectorAll('.modal-overlay').forEach(function(overlay) {
+                overlay.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        this.classList.remove('active');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
